@@ -161,6 +161,8 @@ public:
     static std::unique_ptr<const CChainParams> Main();
     static std::unique_ptr<const CChainParams> TestNet();
 
+    /** BTCO: testing only - move the AuxPoW switch-over height (-auxpowtestheight) */
+    void OverrideAuxpowStartHeight(int height) { consensus.nAuxpowStartHeight = height; }
 protected:
     CChainParams() {}
 

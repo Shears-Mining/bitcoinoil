@@ -6,6 +6,8 @@
 
 #include <kernel/chainparams.h>
 
+#include <limits>
+
 #include <chainparamsseeds.h>
 #include <arith_uint256.h>
 #include <consensus/amount.h>
@@ -69,6 +71,12 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 /**
  * Main network on which people trade goods and services.
  */
+/**
+ * BTCO AuxPoW switch-over height on mainnet.
+ * PLACEHOLDER - the final height is set and announced before release.
+ */
+static constexpr int AUXPOW_START_HEIGHT_MAIN = 160000;
+
 class CMainParams : public CChainParams {
 public:
     CMainParams() {
@@ -106,6 +114,13 @@ public:
 
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000089ebbdce68a3bd89df");
         consensus.defaultAssumeValid = uint256S("0x000000000000000a22d593f73bb24dee585ebfad4c9531b0c565da411c54a861"); // 2000
+
+        // BTCO AuxPoW (merge mining). Before nAuxpowStartHeight the rules are exactly as before.
+        consensus.BIP16Height = 0; // P2SH has always been active on BTCO
+        consensus.nAuxpowChainId = 0x0B7C;
+        consensus.nAuxpowStartHeight = AUXPOW_START_HEIGHT_MAIN;
+        consensus.fStrictChainId = true;
+        consensus.nLegacyBlocksBefore = -1;
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -210,6 +225,13 @@ public:
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x00000000f130184486dad044d14fff1d39665f09551dfafccd5a8f938c05df57"); 
+
+        // BTCO AuxPoW: not scheduled on the old testnet, its rules stay unchanged
+        consensus.BIP16Height = 0;
+        consensus.nAuxpowChainId = 0x0B7C;
+        consensus.nAuxpowStartHeight = std::numeric_limits<int>::max();
+        consensus.fStrictChainId = true;
+        consensus.nLegacyBlocksBefore = -1;
 
         pchMessageStart[0] = 0x27;
         pchMessageStart[1] = 0x7b;
@@ -354,6 +376,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
+        consensus.BIP16Height = 0;
+        consensus.nAuxpowStartHeight = 0;
+        consensus.nAuxpowChainId = 0x0B7C;
+        consensus.fStrictChainId = true;
+        consensus.nLegacyBlocksBefore = 0;
+
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
         h << consensus.signet_challenge;
@@ -419,8 +447,8 @@ public:
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 150;
+        consensus.BIP16Height = 0;
         consensus.BIP34Height = 1; // Always active unless overridden
-        consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 1;  // Always active unless overridden
         consensus.BIP66Height = 1;  // Always active unless overridden
         consensus.CSVHeight = 1;    // Always active unless overridden
@@ -446,6 +474,11 @@ public:
 
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
+
+        consensus.nAuxpowStartHeight = 0;
+        consensus.nAuxpowChainId = 0x0B7C;
+        consensus.fStrictChainId = true;
+        consensus.nLegacyBlocksBefore = 0;
 
         pchMessageStart[0] = 0xfe;
         pchMessageStart[1] = 0xdc;

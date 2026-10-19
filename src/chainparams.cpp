@@ -99,7 +99,13 @@ const CChainParams &Params() {
 std::unique_ptr<const CChainParams> CreateChainParams(const ArgsManager& args, const std::string& chain)
 {
     if (chain == CBaseChainParams::MAIN) {
-        return CChainParams::Main();
+        auto params = CChainParams::Main();
+        if (args.IsArgSet("-auxpowtestheight")) {
+            // BTCO testing only: run a private copy of mainnet with an earlier AuxPoW switch-over.
+            // A node using this is on its own fork - never use it on the real network.
+            const_cast<CChainParams&>(*params).OverrideAuxpowStartHeight(args.GetIntArg("-auxpowtestheight", 0));
+        }
+        return params;
     } else if (chain == CBaseChainParams::TESTNET) {
         return CChainParams::TestNet();
     } else if (chain == CBaseChainParams::SIGNET) {

@@ -125,11 +125,23 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
 
-    pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
+    const int32_t nChainId = chainparams.GetConsensus ().nAuxpowChainId;
+    const bool fAuxpowActive = nHeight >= chainparams.GetConsensus ().nAuxpowStartHeight;
+    if (fAuxpowActive) {
+        // BTCO: from the AuxPoW start height every block carries our chain ID
+        pblock->SetBaseVersion(4, nChainId);
+    } else {
+        // BTCO: before the AuxPoW start height, blocks are built exactly as before
+        pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
+    }
+
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (chainparams.MineBlocksOnDemand()) {
-        pblock->nVersion = gArgs.GetIntArg("-blockversion", pblock->nVersion);
+        if (fAuxpowActive)
+            pblock->SetBaseVersion(gArgs.GetIntArg("-blockversion", pblock->GetBaseVersion()), nChainId);
+        else
+            pblock->nVersion = gArgs.GetIntArg("-blockversion", pblock->nVersion);
     }
 
     pblock->nTime = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
