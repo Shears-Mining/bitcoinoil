@@ -2107,21 +2107,21 @@ static std::array<ThresholdConditionCache, VERSIONBITS_NUM_BITS> warningcache GU
 
 static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const ChainstateManager& chainman)
 {
+    // BTCO: script flags exactly as in BitcoinOil Core 25.1.1 (unchanged by AuxPoW)
     const Consensus::Params& consensusparams = chainman.GetConsensus();
 
-    uint32_t flags{SCRIPT_VERIFY_NONE};
-
-    /* We allow overriding flags with exceptions, in case a few historical
-       blocks violate a softfork that got activated later, and which we want
-       to otherwise enforce unconditionally.  For now, there are no
-       flags enforced unconditionally, though.  */
+    // BIP16 didn't become active until Apr 1 2012 (on mainnet, and
+    // retroactively applied to testnet)
+    // However, only one historical block violated the P2SH rules (on both
+    // mainnet and testnet).
+    // Similarly, only one historical block violated the TAPROOT rules on
+    // mainnet.
+    // For simplicity, always leave P2SH+WITNESS+TAPROOT on except for the two
+    // violating blocks.
+    uint32_t flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT};
     const auto it{consensusparams.script_flag_exceptions.find(*Assert(block_index.phashBlock))};
     if (it != consensusparams.script_flag_exceptions.end()) {
         flags = it->second;
-    }
-
-    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_P2SH)) {
-        flags |= SCRIPT_VERIFY_P2SH;
     }
 
     // Enforce the DERSIG (BIP66) rule
@@ -2139,15 +2139,9 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
     }
 
-    // Enforce Taproot (BIP340-BIP342)
-    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_TAPROOT)) {
-        flags |= SCRIPT_VERIFY_TAPROOT;
-    }
-
     // Enforce BIP147 NULLDUMMY (activated simultaneously with segwit)
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_SEGWIT)) {
         flags |= SCRIPT_VERIFY_NULLDUMMY;
-        flags |= SCRIPT_VERIFY_WITNESS;
     }
 
     return flags;
@@ -3793,9 +3787,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     }
 
     // Reject blocks with outdated version
-    if ((block.GetBaseVersion() < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
-        (block.GetBaseVersion() < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
-        (block.GetBaseVersion() < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
+    // BTCO: before the AuxPoW start the whole nVersion is compared, exactly as before;
+    // from the start height the version carries the chain ID, so compare its base version.
+    const int32_t nCheckVersion = nHeight >= consensusParams.nAuxpowStartHeight ? block.GetBaseVersion() : block.nVersion;
+    if ((nCheckVersion < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
+        (nCheckVersion < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
+        (nCheckVersion < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
     }
