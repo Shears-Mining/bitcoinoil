@@ -273,7 +273,7 @@ TestChain100Setup::TestChain100Setup(
         const bool block_tree_db_in_memory)
     : TestingSetup{CBaseChainParams::REGTEST, extra_args, coins_db_in_memory, block_tree_db_in_memory}
 {
-    SetMockTime(1598887952);
+    SetMockTime(1729360338 + 60 * 60); // BTCO: after the BTCO regtest genesis time (was a Bitcoin-era date)
     constexpr std::array<unsigned char, 32> vchKey = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
@@ -283,9 +283,9 @@ TestChain100Setup::TestChain100Setup(
 
     {
         LOCK(::cs_main);
-        assert(
-            m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString() ==
-            "009972c21c1f04bed4219067c0063bb2b5808282735b1cc7a21e26c75a967668");
+        const std::string tip_hash{m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString()};
+        if (tip_hash != "075204bcb3cda4c843bbc8a0933e9269b5aac88b79a5c589d731c1eec54700c1") { fprintf(stderr, "TIPHASH %s\n", tip_hash.c_str()); }
+        assert(tip_hash == "075204bcb3cda4c843bbc8a0933e9269b5aac88b79a5c589d731c1eec54700c1");
     }
 }
 

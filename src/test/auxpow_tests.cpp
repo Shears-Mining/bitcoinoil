@@ -430,9 +430,12 @@ BOOST_FIXTURE_TEST_CASE (auxpow_pow, BasicTestingSetup)
   mineBlock (block, true);
   BOOST_CHECK (CheckProofOfWork (block, params));
 
+  /* BTCO: the chain-ID rule depends on the height (it only applies from
+     nAuxpowStartHeight), so it is enforced in ContextualCheckBlockHeader and
+     not in the context-free CheckProofOfWork.  */
   block.nVersion = 2;
   mineBlock (block, true);
-  BOOST_CHECK (!CheckProofOfWork (block, params));
+  BOOST_CHECK (CheckProofOfWork (block, params));
 
   block.SetBaseVersion (2, params.nAuxpowChainId);
   mineBlock (block, true);
@@ -440,7 +443,7 @@ BOOST_FIXTURE_TEST_CASE (auxpow_pow, BasicTestingSetup)
 
   block.SetChainId (params.nAuxpowChainId + 1);
   mineBlock (block, true);
-  BOOST_CHECK (!CheckProofOfWork (block, params));
+  BOOST_CHECK (CheckProofOfWork (block, params)); // BTCO: see above
 
   /* Check the case when the block does not have auxpow (this is true
      right now).  */
