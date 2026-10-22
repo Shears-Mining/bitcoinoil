@@ -3754,7 +3754,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
                                  "auxpow-not-active",
                                  strprintf("auxpow block before the auxpow start height %d", consensusParams.nAuxpowStartHeight));
-    } else if (consensusParams.fStrictChainId && block.GetChainId() != consensusParams.nAuxpowChainId) {
+    } else if (consensusParams.fStrictChainId && block.IsAuxpow() && block.GetChainId() != consensusParams.nAuxpowChainId) {
+        // BTCO: the chain ID only matters for merge-mined blocks - it stops the same parent-chain
+        // work being reused for another chain with the same ID. Directly-mined blocks carry no
+        // parent work, so their upper version bits are left free for ASIC version rolling
+        // (BIP320 bits 13-28). Enforcing the chain ID on them too left a Bitaxe only 3 rollable
+        // bits and cost ~95% of its useful hashrate in duplicate shares (measured on the test chain).
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
                              "bad-chain-id",
                              strprintf("block does not have our chain ID (got %d, expected %d)",
